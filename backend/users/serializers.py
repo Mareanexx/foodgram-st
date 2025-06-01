@@ -1,11 +1,10 @@
 from rest_framework import serializers
-from .models import User, Follow
-from recipes.models import Recipe
-
+from .models import User, Follow    
+from foodgram_backend.fields import CustomBase64ImageField
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
-    avatar = serializers.ImageField(allow_null=True, required=False)
+    avatar = CustomBase64ImageField(allow_null=True, required=False)
 
     class Meta:
         model = User
@@ -23,7 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            return request.user.follows.filter(author=obj).exists()
+            return request.user.follower.filter(following=obj).exists()
         return False
 
 
@@ -46,21 +45,16 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user
 
 
-class FollowSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Follow
-        fields = ('user', 'author')
-        validators = [
-            serializers.UniqueTogetherValidator(
-                queryset=Follow.objects.all(),
-                fields=('user', 'author'),
-                message='Вы уже подписаны на этого автора'
-            )
-        ]
+class AvatarSerializer(serializers.ModelSerializer):
+    avatar = CustomBase64ImageField(required=True, allow_null=False)
 
-    def validate(self, data):
-        if data['user'] == data['author']:
+    class Meta:
+        model = User
+        fields = ('avatar',)
+
+    def validate(self, attrs):
+        if not attrs.get('avatar'):
             raise serializers.ValidationError(
-                'Нельзя подписаться на самого себя'
+                {'avatar': 'Это поле обязательно.'}
             )
-        return data
+        return attrs
