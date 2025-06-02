@@ -18,7 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'is_subscribed',
-            'avatar'
+            'avatar',
         )
 
     def get_is_subscribed(self, obj):
@@ -39,7 +39,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'username',
             'first_name',
             'last_name',
-            'password'
+            'password',
         )
 
     def create(self, validated_data):
@@ -77,7 +77,7 @@ class FollowingWithRecipesSerializer(serializers.ModelSerializer):
             'is_subscribed',
             'recipes',
             'recipes_count',
-            'avatar'
+            'avatar',
         )
 
     def get_is_subscribed(self, obj):

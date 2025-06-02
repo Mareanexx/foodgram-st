@@ -10,7 +10,7 @@ from users.serializers import (
     UserSerializer,
     UserCreateSerializer,
     AvatarSerializer,
-    FollowingWithRecipesSerializer
+    FollowingWithRecipesSerializer,
 )
 from djoser.views import UserViewSet as DjoserUserViewSet
 from .pagination import CustomPagination
@@ -18,7 +18,7 @@ from recipes.models import Recipe, Favourite, ShoppingCart, Ingredient
 from recipes.serializers import (
     RecipeSerializer,
     RecipeCreateSerializer,
-    IngredientSerializer
+    IngredientSerializer,
 )   
 from recipes.filters import RecipeFilter, IngredientFilter
 from .utils import base62_encode, generate_shopping_list_pdf, get_shopping_list_ingredients
@@ -37,9 +37,9 @@ class UserViewSet(DjoserUserViewSet):
     serializer_class = UserSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'list', 'retrieve']:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+        if self.action in ('create', 'list', 'retrieve',):
+            return (AllowAny(),)
+        return (IsAuthenticated(),)
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -48,8 +48,8 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(
         detail=False,
-        methods=['get'],
-        permission_classes=[IsAuthenticated]
+        methods=('get',),
+        permission_classes=(IsAuthenticated,),
     )
     def me(self, request):
         serializer = self.get_serializer(request.user)
@@ -57,8 +57,8 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(
         detail=False,
-        methods=['post'],
-        permission_classes=[IsAuthenticated]
+        methods=('post',),
+        permission_classes=(IsAuthenticated,),
     )
     def set_password(self, request):
         user = request.user
@@ -67,8 +67,8 @@ class UserViewSet(DjoserUserViewSet):
 
         if not user.check_password(current_password):
             return Response(
-                {'current_password': ['Неверный пароль']},
-                status=status.HTTP_400_BAD_REQUEST
+                {'current_password': ('Неверный пароль',)},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         user.set_password(new_password)
@@ -77,8 +77,8 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(
         detail=False,
-        methods=['get'],
-        permission_classes=[IsAuthenticated]
+        methods=('get',),
+        permission_classes=(IsAuthenticated,),
     )
     def subscriptions(self, request):
         queryset = Follow.objects.filter(follower=request.user)
@@ -86,14 +86,14 @@ class UserViewSet(DjoserUserViewSet):
         serializer = FollowingWithRecipesSerializer(
             pages,
             many=True,
-            context={'request': request}
+            context={'request': request},
         )
         return self.get_paginated_response(serializer.data)
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
-        permission_classes=[IsAuthenticated]
+        methods=('post', 'delete',),
+        permission_classes=(IsAuthenticated,),
     )
     def subscribe(self, request, id=None):
         user = request.user
@@ -103,22 +103,22 @@ class UserViewSet(DjoserUserViewSet):
             if user == author:
                 return Response(
                     {'errors': 'Нельзя подписаться на самого себя'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             if Follow.objects.filter(follower=user, following=author).exists():
                 return Response(
                     {'errors': 'Вы уже подписаны на этого пользователя'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             follow = Follow.objects.create(follower=user, following=author)
             serializer = FollowingWithRecipesSerializer(
                 follow,
-                context={'request': request}
+                context={'request': request},
             )
             return Response(
                 serializer.data,
-                status=status.HTTP_201_CREATED
+                status=status.HTTP_201_CREATED,
             )
 
         if request.method == 'DELETE':
@@ -126,16 +126,16 @@ class UserViewSet(DjoserUserViewSet):
             if not follow.exists():
                 return Response(
                     {'errors': 'Вы не были подписаны на этого пользователя'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             follow.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
-        methods=['put', 'delete'],
-        permission_classes=[IsAuthenticated],
-        url_path='me/avatar'
+        methods=('put', 'delete',),
+        permission_classes=(IsAuthenticated,),
+        url_path='me/avatar',
     )
     def avatar(self, request):
         user = request.user
@@ -143,15 +143,15 @@ class UserViewSet(DjoserUserViewSet):
         if request.method == 'PUT':
             if not request.data:
                 return Response(
-                    {'avatar': ['Это поле обязательно.']},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {'avatar': ('Это поле обязательно.',)},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
             serializer = AvatarSerializer(user, data=request.data, partial=True)
             if serializer.is_valid():
                 instance = serializer.save()
                 return Response(
                     {'avatar': request.build_absolute_uri(instance.avatar.url)},
-                    status=status.HTTP_200_OK
+                    status=status.HTTP_200_OK,
                 )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -166,16 +166,16 @@ class UserViewSet(DjoserUserViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     pagination_class = CustomPagination
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAuthenticated(), OwnerOrReadOnly()]
-        return [AllowAny()]
+        if self.action in ('create', 'update', 'partial_update', 'destroy',):
+            return (IsAuthenticated(), OwnerOrReadOnly(),)
+        return (AllowAny(),)
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
+        if self.action in ('create', 'update', 'partial_update',):
             return RecipeCreateSerializer
         return RecipeSerializer
 
@@ -185,13 +185,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.select_related(
-            'author'
+            'author',
         ).prefetch_related(
             'recipe_ingredients',
-            'recipe_ingredients__ingredient'
+            'recipe_ingredients__ingredient',
         )
 
-    @action(detail=True, methods=['get'], url_path='get-link')
+    @action(detail=True, methods=('get',), url_path='get-link')
     def get_link(self, request, pk=None):
         recipe = self.get_object()
         short = base62_encode(recipe.id)
@@ -202,7 +202,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if not request.user.is_authenticated:
             return Response(
                 {"detail": "Учетные данные не были предоставлены."},
-                status=status.HTTP_401_UNAUTHORIZED
+                status=status.HTTP_401_UNAUTHORIZED,
             )
             
         user = request.user
@@ -221,27 +221,27 @@ class RecipeViewSet(viewsets.ModelViewSet):
             obj.delete()
             return Response(status=204)
 
-    @action(detail=True, methods=['post', 'delete'], url_path='favorite')
+    @action(detail=True, methods=('post', 'delete',), url_path='favorite')
     def favorite(self, request, pk=None):
         recipe = self.get_object()
         return self._handle_relation(
             request, recipe, Favourite,
-            'Рецепт уже в избранном.', 'Рецепта не было в избранном.'
+            'Рецепт уже в избранном.', 'Рецепта не было в избранном.',
         )
 
-    @action(detail=True, methods=['post', 'delete'], url_path='shopping_cart')
+    @action(detail=True, methods=('post', 'delete',), url_path='shopping_cart')
     def shopping_cart(self, request, pk=None):
         recipe = self.get_object()
         return self._handle_relation(
             request, recipe, ShoppingCart,
-            'Рецепт уже в списке покупок.', 'Рецепта не было в списке покупок.'
+            'Рецепт уже в списке покупок.', 'Рецепта не было в списке покупок.',
         )
 
     @action(
         detail=False,
-        methods=['get'],
-        permission_classes=[IsAuthenticated],
-        url_path='download_shopping_cart'
+        methods=('get',),
+        permission_classes=(IsAuthenticated,),
+        url_path='download_shopping_cart',
     )
     def download_shopping_cart(self, request):
         ingredients = get_shopping_list_ingredients(request.user)
@@ -249,7 +249,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if not ingredients:
             return Response(
                 {'errors': 'Список покупок пуст'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         buffer = generate_shopping_list_pdf(request.user, ingredients)
@@ -258,13 +258,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
             buffer,
             as_attachment=True,
             filename=f'shopping_list_{datetime.now().strftime("%Y%m%d_%H%M")}.pdf',
-            content_type='application/pdf'
+            content_type='application/pdf',
         )
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = [AllowAny]
-    filter_backends = [DjangoFilterBackend]
+    permission_classes = (AllowAny,)
+    filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
