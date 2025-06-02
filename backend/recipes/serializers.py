@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from recipes.models import Recipe, Ingredient, RecipeIngredient, Favourite, ShoppingCart
-from users.serializers import UserSerializer
 from foodgram_backend.fields import CustomBase64ImageField
 
 
@@ -62,7 +61,7 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    author = UserSerializer(read_only=True)
+    author = serializers.SerializerMethodField()
     ingredients = IngredientInRecipeSerializer(
         source='recipe_ingredients',
         many=True,
@@ -86,6 +85,10 @@ class RecipeSerializer(serializers.ModelSerializer):
             'cooking_time'
         )
 
+    def get_author(self, obj):
+        from users.serializers import UserSerializer
+        return UserSerializer(obj.author, context=self.context).data
+
     def get_is_favorited(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
@@ -103,10 +106,6 @@ class RecipeSerializer(serializers.ModelSerializer):
                 recipe=obj
             ).exists()
         return False
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        return data
 
 
 class RecipeCreateSerializer(RecipeSerializer):
@@ -195,10 +194,9 @@ class RecipeCreateSerializer(RecipeSerializer):
         RecipeIngredient.objects.bulk_create(recipe_ingredients)
         
         return super().update(instance, validated_data)
-
+    
     def to_representation(self, instance):
-        serializer = RecipeSerializer(instance, context=self.context)
-        return serializer.data
+        return RecipeSerializer(instance, context=self.context).data
 
 
 class IngredientSerializer(serializers.ModelSerializer):

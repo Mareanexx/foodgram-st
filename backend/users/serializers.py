@@ -1,10 +1,13 @@
 from rest_framework import serializers
-from .models import User, Follow    
+from django.contrib.auth import get_user_model
+from recipes.models import Recipe
 from foodgram_backend.fields import CustomBase64ImageField
 
+User = get_user_model()
+
 class UserSerializer(serializers.ModelSerializer):
-    is_subscribed = serializers.SerializerMethodField(read_only=True)
-    avatar = CustomBase64ImageField(allow_null=True, required=False)
+    is_subscribed = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(required=False)
 
     class Meta:
         model = User
@@ -17,13 +20,12 @@ class UserSerializer(serializers.ModelSerializer):
             'is_subscribed',
             'avatar'
         )
-        read_only_fields = ('id', 'is_subscribed')
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return request.user.follower.filter(following=obj).exists()
-        return False
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.following.filter(follower=request.user).exists()
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -46,15 +48,49 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class AvatarSerializer(serializers.ModelSerializer):
-    avatar = CustomBase64ImageField(required=True, allow_null=False)
+    avatar = CustomBase64ImageField()
 
     class Meta:
         model = User
         fields = ('avatar',)
 
-    def validate(self, attrs):
-        if not attrs.get('avatar'):
-            raise serializers.ValidationError(
-                {'avatar': 'Это поле обязательно.'}
-            )
-        return attrs
+
+class FollowingWithRecipesSerializer(serializers.ModelSerializer):
+    email = serializers.ReadOnlyField(source='following.email')
+    id = serializers.ReadOnlyField(source='following.id')
+    username = serializers.ReadOnlyField(source='following.username')
+    first_name = serializers.ReadOnlyField(source='following.first_name')
+    last_name = serializers.ReadOnlyField(source='following.last_name')
+    is_subscribed = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(source='following.avatar', read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count',
+            'avatar'
+        )
+
+    def get_is_subscribed(self, obj):
+        return True
+
+    def get_recipes(self, obj):
+        from recipes.serializers import RecipeMinifiedSerializer
+        request = self.context.get('request')
+        recipes_limit = request.query_params.get('recipes_limit')
+        recipes = obj.following.recipes.all()
+        if recipes_limit:
+            recipes = recipes[:int(recipes_limit)]
+        return RecipeMinifiedSerializer(recipes, many=True).data
+
+    def get_recipes_count(self, obj):
+        return Recipe.objects.filter(author=obj.following).count()
