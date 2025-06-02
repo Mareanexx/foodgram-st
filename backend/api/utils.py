@@ -8,10 +8,12 @@ from io import BytesIO
 from datetime import datetime
 from django.conf import settings
 import os
+from django.shortcuts import redirect
+from django.http import Http404
+from recipes.models import Recipe
 
 
 BASE62 = string.digits + string.ascii_letters
-
 
 def base62_encode(num):
     if num == 0:
@@ -26,43 +28,46 @@ def base62_encode(num):
 
 
 def generate_shopping_list_pdf(user, ingredients):
-    buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    
-    fonts_dir = os.path.join(settings.BASE_DIR, 'static', 'fonts')
-    pdfmetrics.registerFont(TTFont('Roboto-Regular', os.path.join(fonts_dir, 'roboto_regular.ttf')))
-    pdfmetrics.registerFont(TTFont('Roboto-Bold', os.path.join(fonts_dir, 'roboto_bold.ttf')))
-    
-    pdf.setFont('Roboto-Bold', 24)
-    pdf.drawString(50, height - 70, 'Список покупок')
-    
-    y = height - 120
-    pdf.setFont('Roboto-Regular', 14)
-    
-    for i, item in enumerate(ingredients, 1):
-        ingredient_name = item['ingredient__name']
-        amount = item['total_amount']
-        measurement_unit = item['ingredient__measurement_unit']
+    try:
+        buffer = BytesIO()
+        pdf = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+
+        pdfmetrics.registerFont(TTFont('DejaVuSerif', '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'))
+        pdfmetrics.registerFont(TTFont('DejaVuSerif-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf'))
         
-        line = f'{i}. {ingredient_name} — {amount} {measurement_unit}'
-        pdf.drawString(50, y, line)
-        y -= 30
+        pdf.setFont('DejaVuSerif-Bold', 24)
+        pdf.drawString(50, height - 70, 'Список покупок')
         
-        if y < 50:
-            pdf.showPage()
-            pdf.setFont('Roboto-Regular', 14)
-            y = height - 50
-    
-    pdf.setFont('Roboto-Bold', 12)
-    current_date = datetime.now().strftime("%d.%m.%Y %H:%M")
-    pdf.drawString(50, 30, f'Foodgram | Сформировано: {current_date}')
-    
-    pdf.showPage()
-    pdf.save()
-    
-    buffer.seek(0)
-    return buffer
+        y = height - 120
+        pdf.setFont('DejaVuSerif', 14)
+        
+        for i, item in enumerate(ingredients, 1):
+            ingredient_name = item['ingredient__name']
+            amount = item['total_amount']
+            measurement_unit = item['ingredient__measurement_unit']
+            
+            line = f'{i}. {ingredient_name} — {amount} {measurement_unit}'
+            pdf.drawString(50, y, line)
+            y -= 30
+            
+            if y < 50:
+                pdf.showPage()
+                pdf.setFont('DejaVuSerif', 14)
+                y = height - 50
+        
+        pdf.setFont('DejaVuSerif-Bold', 12)
+        current_date = datetime.now().strftime("%d.%m.%Y %H:%M")
+        pdf.drawString(50, 30, f'Foodgram | Сформировано: {current_date}')
+        
+        pdf.showPage()
+        pdf.save()
+        
+        buffer.seek(0)
+        return buffer
+    except Exception as e:
+        print(f"Error generating PDF: {str(e)}")
+        raise
 
 
 def get_shopping_list_ingredients(user):
@@ -79,4 +84,23 @@ def get_shopping_list_ingredients(user):
             )
         )
         .order_by('ingredient__name')
-    ) 
+    )
+
+
+def short_link_redirect(request, short_id):
+    def base62_decode(s):
+        base = len(BASE62)
+        num = 0
+        for char in s:
+            num = num * base + BASE62.index(char)
+        return num
+
+    try:
+        recipe_id = base62_decode(short_id)
+    except Exception:
+        raise Http404("Invalid short link")
+
+    if not Recipe.objects.filter(id=recipe_id).exists():
+        raise Http404("Recipe not found")
+
+    return redirect(f'/recipes/{recipe_id}/') 

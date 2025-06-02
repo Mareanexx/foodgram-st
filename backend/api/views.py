@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -21,10 +21,10 @@ from recipes.serializers import (
     IngredientSerializer,
 )   
 from recipes.filters import RecipeFilter, IngredientFilter
-from .utils import base62_encode, generate_shopping_list_pdf, get_shopping_list_ingredients
+from .utils import base62_encode, generate_shopping_list_pdf, get_shopping_list_ingredients, BASE62
 from api.permissions import OwnerOrReadOnly
 from rest_framework import filters as drf_filters
-from django.http import FileResponse
+from django.http import FileResponse, Http404
 from datetime import datetime
 
 
