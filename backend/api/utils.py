@@ -6,8 +6,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from datetime import datetime
-from django.conf import settings
-import os
 from django.shortcuts import redirect
 from django.http import Http404
 from recipes.models import Recipe
@@ -103,4 +101,4 @@ def short_link_redirect(request, short_id):
     if not Recipe.objects.filter(id=recipe_id).exists():
         raise Http404("Recipe not found")
 
-    return redirect(f'/recipes/{recipe_id}/') 
+    return redirect(f'/recipes/{recipe_id}/')
