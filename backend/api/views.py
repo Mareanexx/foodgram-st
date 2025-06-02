@@ -19,12 +19,13 @@ from recipes.serializers import (
     RecipeSerializer,
     RecipeCreateSerializer,
     IngredientSerializer,
-)   
+)
 from recipes.filters import RecipeFilter, IngredientFilter
 from .utils import base62_encode, generate_shopping_list_pdf, get_shopping_list_ingredients
 from api.permissions import OwnerOrReadOnly
 from django.http import FileResponse
 from datetime import datetime
+from api.serializers.common import RecipeMinifiedSerializer
 
 
 User = get_user_model()
@@ -80,7 +81,7 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def subscriptions(self, request):
-        queryset = Follow.objects.filter(follower=request.user)
+        queryset = request.user.following.all()
         pages = self.paginate_queryset(queryset)
         serializer = FollowingWithRecipesSerializer(
             pages,
@@ -98,18 +99,20 @@ class UserViewSet(DjoserUserViewSet):
         user = request.user
         author = get_object_or_404(User, id=id)
 
+        if user == author:
+            return Response(
+                {'errors': 'Нельзя подписаться на самого себя'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        follow_qs = user.following.filter(following=author)
+
         if request.method == 'POST':
-            if user == author:
-                return Response(
-                    {'errors': 'Нельзя подписаться на самого себя'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if Follow.objects.filter(follower=user, following=author).exists():
+            if follow_qs.exists():
                 return Response(
                     {'errors': 'Вы уже подписаны на этого пользователя'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
             follow = Follow.objects.create(follower=user, following=author)
             serializer = FollowingWithRecipesSerializer(
                 follow,
@@ -121,13 +124,12 @@ class UserViewSet(DjoserUserViewSet):
             )
 
         if request.method == 'DELETE':
-            follow = Follow.objects.filter(follower=user, following=author)
-            if not follow.exists():
+            if not follow_qs.exists():
                 return Response(
                     {'errors': 'Вы не были подписаны на этого пользователя'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            follow.delete()
+            follow_qs.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -146,13 +148,12 @@ class UserViewSet(DjoserUserViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             serializer = AvatarSerializer(user, data=request.data, partial=True)
-            if serializer.is_valid():
-                instance = serializer.save()
-                return Response(
-                    {'avatar': request.build_absolute_uri(instance.avatar.url)},
-                    status=status.HTTP_200_OK,
-                )
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            return Response(
+                {'avatar': request.build_absolute_uri(instance.avatar.url)},
+                status=status.HTTP_200_OK,
+            )
 
         if request.method == 'DELETE':
             if user.avatar:
@@ -209,16 +210,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
         
         if request.method == 'POST':
             if obj.exists():
-                return Response({'errors': error_exists}, status=400)
+                return Response({'errors': error_exists}, status=status.HTTP_400_BAD_REQUEST)
             model.objects.create(user=user, recipe=recipe)
-            from recipes.serializers import RecipeMinifiedSerializer
             data = RecipeMinifiedSerializer(recipe, context={'request': request}).data
-            return Response(data, status=201)
+            return Response(data, status=status.HTTP_201_CREATED)
         if request.method == 'DELETE':
             if not obj.exists():
-                return Response({'errors': error_not_exists}, status=400)
+                return Response({'errors': error_not_exists}, status=status.HTTP_400_BAD_REQUEST)
             obj.delete()
-            return Response(status=204)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=('post', 'delete',), url_path='favorite')
     def favorite(self, request, pk=None):

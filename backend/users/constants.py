@@ -1,0 +1,11 @@
+MAX_LENGTH_EMAIL = 254
+MAX_LENGTH_USERNAME = 150
+MAX_LENGTH_FIRST_NAME = 150
+MAX_LENGTH_LAST_NAME = 150
+
+USERNAME_REGEX = r'^[\w.@+-]+$'
+USERNAME_ERROR_MESSAGE = 'Недопустимые символы в username.'
+
+AVATAR_UPLOAD_PATH = 'avatars/'
+
+AVATAR_ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png']

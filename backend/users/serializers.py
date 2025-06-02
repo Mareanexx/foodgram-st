@@ -2,8 +2,11 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from recipes.models import Recipe
 from foodgram_backend.fields import CustomBase64ImageField
+from api.serializers.common import RecipeMinifiedSerializer
+
 
 User = get_user_model()
+
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
@@ -84,7 +87,6 @@ class FollowingWithRecipesSerializer(serializers.ModelSerializer):
         return True
 
     def get_recipes(self, obj):
-        from recipes.serializers import RecipeMinifiedSerializer
         request = self.context.get('request')
         recipes_limit = request.query_params.get('recipes_limit')
         recipes = obj.following.recipes.all()

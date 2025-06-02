@@ -1,40 +1,50 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import RegexValidator, FileExtensionValidator
+from .constants import (
+    MAX_LENGTH_EMAIL,
+    MAX_LENGTH_USERNAME,
+    MAX_LENGTH_FIRST_NAME,
+    MAX_LENGTH_LAST_NAME,
+    USERNAME_REGEX,
+    USERNAME_ERROR_MESSAGE,
+    AVATAR_UPLOAD_PATH,
+    AVATAR_ALLOWED_EXTENSIONS
+)
 
 
 class User(AbstractUser):
     email = models.EmailField(
         unique=True,
-        max_length=254,
+        max_length=MAX_LENGTH_EMAIL,
         verbose_name='Электронная почта'
     )
     username = models.CharField(
-        max_length=150,
+        max_length=MAX_LENGTH_USERNAME,
         unique=True,
         validators=[
             RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message='Недопустимые символы в username.'
+                regex=USERNAME_REGEX,
+                message=USERNAME_ERROR_MESSAGE
             )
         ],
         verbose_name='Имя пользователя'
     )
     first_name = models.CharField(
-        max_length=150,
+        max_length=MAX_LENGTH_FIRST_NAME,
         verbose_name='Имя'
     )
     last_name = models.CharField(
-        max_length=150,
+        max_length=MAX_LENGTH_LAST_NAME,
         verbose_name='Фамилия'
     )
     avatar = models.ImageField(
-        upload_to='avatars/',
+        upload_to=AVATAR_UPLOAD_PATH,
         null=True,
         blank=True,
         verbose_name='Аватар',
         validators=[
-            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])
+            FileExtensionValidator(allowed_extensions=AVATAR_ALLOWED_EXTENSIONS)
         ]
     )
 
@@ -54,13 +64,13 @@ class Follow(models.Model):
     follower = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='follower',
+        related_name='following',
         verbose_name='Подписчик'
     )
     following = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='following',
+        related_name='followers',
         verbose_name='Подписка'
     )
 

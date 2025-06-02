@@ -166,4 +166,4 @@ class ShoppingCart(UserRecipeRelation):
     class Meta(UserRecipeRelation.Meta):
         verbose_name = "Список покупок"
         verbose_name_plural = "Список покупок"
-        default_related_name = 'shopping_cart'
+        default_related_name = 'shoppingcarts'

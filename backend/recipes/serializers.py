@@ -1,13 +1,8 @@
 from rest_framework import serializers
 from recipes.models import Recipe, Ingredient, RecipeIngredient, Favourite, ShoppingCart
 from foodgram_backend.fields import CustomBase64ImageField
-
-
-class RecipeMinifiedSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time',)
-        read_only_fields = fields
+from api.serializers.common import RecipeMinifiedSerializer
+from users.serializers import UserSerializer
 
 
 class FavouriteSerializer(serializers.ModelSerializer):
@@ -35,7 +30,7 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
     def validate(self, data):
         user = data['user']
         recipe = data['recipe']
-        if recipe in user.shopping_cart.all():
+        if recipe in user.shoppingcarts.all():
             raise serializers.ValidationError("Рецепт уже в корзине покупок.")
         return data
 
@@ -84,24 +79,47 @@ class RecipeSerializer(serializers.ModelSerializer):
         )
 
     def get_author(self, obj):
-        from users.serializers import UserSerializer
         return UserSerializer(obj.author, context=self.context).data
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')
-        if request:
-            return obj in request.user.favourites.all()
+        if request and request.user.is_authenticated:
+            return request.user.favourites.filter(recipe=obj).exists()
         return False
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
-        if request:
-            return obj in request.user.shopping_cart.all()
+        if request and request.user.is_authenticated:
+            return request.user.shoppingcarts.filter(recipe=obj).exists()
         return False
+
+
+class CreateRecipeIngredientSerializer(serializers.ModelSerializer):
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects.all(),
+        source='ingredient'
+    )
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('id', 'amount')
 
 
 class RecipeCreateSerializer(RecipeSerializer):
     ingredients = CreateRecipeIngredientSerializer(many=True)
+
+    def validate_ingredients(self, value):
+        if not value:
+            raise serializers.ValidationError("Список ингредиентов не может быть пустым.")
+
+        ingredient_ids = []
+        for item in value:
+            ingredient = item.get('ingredient')
+            if ingredient in ingredient_ids:
+                raise serializers.ValidationError("Ингредиенты не должны повторяться")
+            ingredient_ids.append(ingredient)
+
+        return value
 
     def _create_recipe_ingredients(self, recipe, ingredients_data):
         recipe_ingredients = [
@@ -134,17 +152,6 @@ class RecipeCreateSerializer(RecipeSerializer):
     
     def to_representation(self, instance):
         return RecipeSerializer(instance, context=self.context).data
-
-
-class CreateRecipeIngredientSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(
-        queryset=Ingredient.objects.all(),
-        source='ingredient'
-    )
-
-    class Meta:
-        model = RecipeIngredient
-        fields = ('id', 'amount')
 
 
 class IngredientSerializer(serializers.ModelSerializer):
