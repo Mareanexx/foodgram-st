@@ -45,10 +45,13 @@ cd foodgram-st
 docker-compose up --build -d
 ```
 
-4. После успешного запуска контейнеров, выполните миграции и загрузите тестовые данные:
+При первом запуске контейнеров автоматически выполнятся следующие действия:
+- Применение миграций к базе данных
+- Сбор статических файлов
+- Загрузка базового списка ингредиентов
+
+4. (Опционально) Для загрузки тестовых данных выполните команду:
 ```bash
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py load_ingredients
 docker compose exec backend python manage.py load_test_data
 ```
 
@@ -62,7 +65,7 @@ docker compose exec backend python manage.py load_test_data
 
 ### Тестовые пользователи
 
-В проекте уже созданы тестовые пользователи:
+После выполнения команды загрузки тестовых данных будут доступны следующие пользователи:
 
 - Email: masterchef@example.com (пароль: testpass123)
 - Email: homecook@example.com (пароль: testpass123)

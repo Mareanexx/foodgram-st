@@ -6,8 +6,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from datetime import datetime
-from django.shortcuts import redirect, get_object_or_404
-from django.http import Http404, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponseRedirect
 from recipes.models import Recipe
 
 
@@ -36,7 +36,7 @@ def generate_shopping_list_pdf(user, ingredients):
             pdfmetrics.registerFont(TTFont('CustomFont-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf'))
             font_name = 'CustomFont'
             font_name_bold = 'CustomFont-Bold'
-        except:
+        except Exception:
             font_name = 'Helvetica'
             font_name_bold = 'Helvetica-Bold'
         
