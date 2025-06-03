@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from recipes.models import Recipe
 from foodgram_backend.fields import CustomBase64ImageField
 from api.serializers.common import RecipeMinifiedSerializer
 
@@ -95,4 +94,4 @@ class FollowingWithRecipesSerializer(serializers.ModelSerializer):
         return RecipeMinifiedSerializer(recipes, many=True).data
 
     def get_recipes_count(self, obj):
-        return Recipe.objects.filter(author=obj.following).count()
+        return obj.following.recipes.count()

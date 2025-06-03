@@ -136,7 +136,7 @@ DJOSER = {
     'SET_PASSWORD_RETYPE': False,
 
     'SERIALIZERS': {
-        'user': 'users.serializers.UserSerializer',
+        'user': 'api.serializers.users.UserSerializer',
         'user_create': 'users.serializers.UserCreateSerializer',
         'current_user': 'users.serializers.UserSerializer',
         'set_password': 'djoser.serializers.SetPasswordSerializer',

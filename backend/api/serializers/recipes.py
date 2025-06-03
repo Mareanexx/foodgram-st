@@ -2,7 +2,13 @@ from rest_framework import serializers
 from recipes.models import Recipe, Ingredient, RecipeIngredient, Favourite, ShoppingCart
 from foodgram_backend.fields import CustomBase64ImageField
 from api.serializers.common import RecipeMinifiedSerializer
-from users.serializers import UserSerializer
+from api.serializers.users import UserSerializer
+from recipes.constants import (
+    MIN_VALUE_INGREDIENT_AMOUNT,
+    MAX_VALUE_INGREDIENT_AMOUNT,
+    MIN_VALUE_COOKING_TIME,
+    MAX_VALUE_COOKING_TIME
+)
 
 
 class FavouriteSerializer(serializers.ModelSerializer):
@@ -99,6 +105,10 @@ class CreateRecipeIngredientSerializer(serializers.ModelSerializer):
         queryset=Ingredient.objects.all(),
         source='ingredient'
     )
+    amount = serializers.IntegerField(
+        min_value=MIN_VALUE_INGREDIENT_AMOUNT,
+        max_value=MAX_VALUE_INGREDIENT_AMOUNT
+    )
 
     class Meta:
         model = RecipeIngredient
@@ -107,6 +117,10 @@ class CreateRecipeIngredientSerializer(serializers.ModelSerializer):
 
 class RecipeCreateSerializer(RecipeSerializer):
     ingredients = CreateRecipeIngredientSerializer(many=True)
+    cooking_time = serializers.IntegerField(
+        min_value=MIN_VALUE_COOKING_TIME,
+        max_value=MAX_VALUE_COOKING_TIME
+    )
 
     def validate_ingredients(self, value):
         if not value:

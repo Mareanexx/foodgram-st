@@ -6,21 +6,21 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
 from users.models import Follow
-from users.serializers import (
+from api.serializers.users import (
     UserSerializer,
     UserCreateSerializer,
     AvatarSerializer,
     FollowingWithRecipesSerializer,
 )
 from djoser.views import UserViewSet as DjoserUserViewSet
-from .pagination import CustomPagination
+from api.pagination import CustomPagination
 from recipes.models import Recipe, Favourite, ShoppingCart, Ingredient
-from recipes.serializers import (
+from api.serializers.recipes import (
     RecipeSerializer,
     RecipeCreateSerializer,
     IngredientSerializer,
 )
-from recipes.filters import RecipeFilter, IngredientFilter
+from api.filters import RecipeFilter, IngredientFilter
 from .utils import base62_encode, generate_shopping_list_pdf, get_shopping_list_ingredients
 from api.permissions import OwnerOrReadOnly
 from django.http import FileResponse
