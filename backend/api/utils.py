@@ -6,8 +6,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from datetime import datetime
-from django.shortcuts import redirect
-from django.http import Http404
+from django.shortcuts import redirect, get_object_or_404
+from django.http import Http404, HttpResponseRedirect
 from recipes.models import Recipe
 
 
@@ -31,14 +31,20 @@ def generate_shopping_list_pdf(user, ingredients):
         pdf = canvas.Canvas(buffer, pagesize=A4)
         width, height = A4
 
-        pdfmetrics.registerFont(TTFont('DejaVuSerif', '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'))
-        pdfmetrics.registerFont(TTFont('DejaVuSerif-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf'))
+        try:
+            pdfmetrics.registerFont(TTFont('CustomFont', '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'))
+            pdfmetrics.registerFont(TTFont('CustomFont-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf'))
+            font_name = 'CustomFont'
+            font_name_bold = 'CustomFont-Bold'
+        except:
+            font_name = 'Helvetica'
+            font_name_bold = 'Helvetica-Bold'
         
-        pdf.setFont('DejaVuSerif-Bold', 24)
+        pdf.setFont(font_name_bold, 24)
         pdf.drawString(50, height - 70, 'Список покупок')
         
         y = height - 120
-        pdf.setFont('DejaVuSerif', 14)
+        pdf.setFont(font_name, 14)
         
         for i, item in enumerate(ingredients, 1):
             ingredient_name = item['ingredient__name']
@@ -51,10 +57,10 @@ def generate_shopping_list_pdf(user, ingredients):
             
             if y < 50:
                 pdf.showPage()
-                pdf.setFont('DejaVuSerif', 14)
+                pdf.setFont(font_name, 14)
                 y = height - 50
         
-        pdf.setFont('DejaVuSerif-Bold', 12)
+        pdf.setFont(font_name_bold, 12)
         current_date = datetime.now().strftime("%d.%m.%Y %H:%M")
         pdf.drawString(50, 30, f'Foodgram | Сформировано: {current_date}')
         
@@ -96,9 +102,7 @@ def short_link_redirect(request, short_id):
     try:
         recipe_id = base62_decode(short_id)
     except Exception:
-        raise Http404("Invalid short link")
+        return HttpResponseRedirect('/recipes')
 
-    if not Recipe.objects.filter(id=recipe_id).exists():
-        raise Http404("Recipe not found")
-
-    return redirect(f'/recipes/{recipe_id}/')
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    return HttpResponseRedirect(f'/recipes/{recipe.id}')
